@@ -32,6 +32,14 @@ try
 
     var app = builder.Build();
 
+    // ✅ Run EF Core migrations on startup
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Database.Migrate();
+        Console.WriteLine("✅ EF Core migrations applied (if any).");
+    }
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
@@ -43,7 +51,7 @@ try
 
     app.UseHttpsRedirection();
 
-    app.UseAuthorization(); 
+    app.UseAuthorization();
 
     app.MapControllers();
 
