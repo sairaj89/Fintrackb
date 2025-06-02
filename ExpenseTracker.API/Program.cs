@@ -5,34 +5,37 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    // Logging
+    // Clear default logging providers and add console logging
     builder.Logging.ClearProviders();
     builder.Logging.AddConsole();
 
-    // Register DbContext
+    // ✅ Register DbContext with SQL Server and retry logic
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseSqlServer(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+            sqlOptions => sqlOptions.EnableRetryOnFailure()
+        ));
 
-    // CORS Policy
+    // ✅ Configure CORS policy for frontend access
     var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
         {
-            policy.WithOrigins("http://localhost:5173") // React frontend dev server
+            policy.WithOrigins("http://localhost:5173")
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
     });
 
-    // Controllers and Swagger
+    // ✅ Add MVC + Swagger/OpenAPI services
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 
     var app = builder.Build();
 
-    // ✅ Run EF Core migrations on startup
+    // ✅ Apply EF Core migrations at runtime
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -46,17 +49,14 @@ try
         app.UseSwaggerUI();
     }
 
-    // ⚠️ CORS should be placed early (before Authorization or routing)
-    app.UseCors(MyAllowSpecificOrigins);
-
+    // ⚠️ Middleware order is important
+    app.UseCors(MyAllowSpecificOrigins);   // Place early in pipeline
     app.UseHttpsRedirection();
-
     app.UseAuthorization();
 
     app.MapControllers();
 
     Console.WriteLine("✅ Starting ExpenseTracker API...");
-
     app.Run();
 }
 catch (Exception ex)
