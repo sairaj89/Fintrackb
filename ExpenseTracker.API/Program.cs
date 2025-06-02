@@ -5,37 +5,37 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    // Clear default logging providers and add console logging
+    // ✅ Logging
     builder.Logging.ClearProviders();
     builder.Logging.AddConsole();
 
-    // ✅ Register DbContext with SQL Server and retry logic
+    // ✅ Register DbContext with Azure SQL + retry
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(
             builder.Configuration.GetConnectionString("DefaultConnection"),
             sqlOptions => sqlOptions.EnableRetryOnFailure()
         ));
 
-    // ✅ Configure CORS policy for frontend access
+    // ✅ Configure CORS for frontend access (adjust origin if needed)
     var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
         {
-            policy.WithOrigins("http://localhost:5173")
+            policy.WithOrigins("http://localhost:5173") // Replace with your frontend URL if needed
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         });
     });
 
-    // ✅ Add MVC + Swagger/OpenAPI services
+    // ✅ Add API + Swagger services
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 
     var app = builder.Build();
 
-    // ✅ Apply EF Core migrations at runtime
+    // ✅ Apply EF Core migrations automatically
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -43,18 +43,20 @@ try
         Console.WriteLine("✅ EF Core migrations applied (if any).");
     }
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+    // ✅ Always enable Swagger (even in production)
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
-    // ⚠️ Middleware order is important
-    app.UseCors(MyAllowSpecificOrigins);   // Place early in pipeline
+    // ✅ Middleware pipeline
+    app.UseCors(MyAllowSpecificOrigins);
     app.UseHttpsRedirection();
     app.UseAuthorization();
 
+    // ✅ Map API controllers
     app.MapControllers();
+
+    // ✅ Map a root route to show status
+    app.MapGet("/", () => "✅ FinTrack Backend API is running!");
 
     Console.WriteLine("✅ Starting ExpenseTracker API...");
     app.Run();
