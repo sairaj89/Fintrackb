@@ -16,15 +16,19 @@ try
             sqlOptions => sqlOptions.EnableRetryOnFailure()
         ));
 
-    // ✅ Configure CORS for frontend access (adjust origin if needed)
+    // ✅ Configure CORS for frontend access (localhost + Netlify)
     var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
         {
-            policy.WithOrigins("http://localhost:5173") // Replace with your frontend URL if needed
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            policy
+                .WithOrigins(
+                    "http://localhost:5173",
+                    "https://fintrackexp.netlify.app"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
     });
 
